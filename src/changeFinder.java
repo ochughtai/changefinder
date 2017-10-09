@@ -33,14 +33,27 @@ public class changeFinder{
 		
 	}
 	
+	public static void getChildren(Node<String> parent, File start) {
+		//Get subdirectories/files
+		String[] children = start.list();
+		
+		for (String name : children) {
+			//TO-DO
+			File child = new File(name);
+			
+		}
+		
+		
+	}
+	
 
 	public static void main(String[] args) {
 		//Get directory from user
 		String dir = getInput();
 		//Open the directory
-		File file = openDir(dir);
+		File start = openDir(dir);
 		//Create parent node for tree
-		Node parent = new Node(file.getAbsolutePath());
+		Node<String> parent = new Node(start.getAbsolutePath());
 
 	}
 
