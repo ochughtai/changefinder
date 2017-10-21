@@ -9,17 +9,28 @@ public class changeFinder{
 	static Node<File> root;
 	static Node<File> root2;
 	//Allocate Lists of Differences
-	static ArrayList<String> added = new ArrayList<String>();
-	static ArrayList<String> deleted = new ArrayList<String>();
+	static List<Node<File>> added = new ArrayList<Node<File>>();
+	static List<Node<File>> deleted = new ArrayList<Node<File>>();
 	
-	public static String getInput(int prompt) {
-		//Create scanner for System.in
-		Scanner scanner = new Scanner(System.in);
+	/*
+	 * Compares 2 Node<Files> and determines if they are the same file
+	 */
+	public static boolean isEqualPath(Node<File> first, Node<File> second){
+		
+		if (first.getData().getAbsolutePath().equals(second.getData().getAbsolutePath())){
+			return true;
+		}
+		
+		return false;
+		
+	}
+	
+	
+	public static String getInput(int prompt, Scanner scanner) {
 		//Create string for user input
 		String input = null;
 		
 		if (prompt == 1){
-			
 			//Print Prompt
 			System.out.print("Directory for before and after comparison: ");
 			//Get input 
@@ -31,10 +42,6 @@ public class changeFinder{
 			//Wait for user to hit enter
 			scanner.nextLine();
 		}
-		
-		//Close Scanner
-		scanner.close();
-		
 		return input;
 	}
 	
@@ -44,15 +51,31 @@ public class changeFinder{
 		File file = new File(dir);
 		//If the file does not exist and is not a directory
 		if (!(file.exists() && file.isDirectory())) {
-			System.out.println("The specified directory could not be found");
+			System.out.println("\nThe specified directory could not be found");
 			System.exit(0);
 		}
 		
 		return file;
 		
 	}
+	/*
+	 * Recursively get all children
+	 */
+	public static List<Node<File>> getAllChildren(Node<File> parent){
+		
+		List<Node<File>> children = parent.getChildren();
+		
+		for (Node<File> child : children){
+			if (child.getData().isDirectory()){
+				children.addAll(getAllChildren(child));
+			}
+		}
+		
+		return children;
+	}
+		
 	
-	public static void getChildren(Node<File> parent) {
+	public static void getChildrenFromFile(Node<File> parent) {
 		
 		//Get sub-directories/files
 		File[] files = parent.getData().listFiles();
@@ -69,65 +92,73 @@ public class changeFinder{
 		//Recursively find and add all children
 		for (Node<File> dir : parent.getChildren()){
 			if (dir.getData().isDirectory()){
-				getChildren(dir);
+				getChildrenFromFile(dir);
 			}
 		}
 		
 		
 	}
 	
+	
+
 	/*
 	 * Recursively compares the files from both trees and returns lists of differences 
 	 */
-	public static void compareFiles(Node<File> parent, Node<File> parent2){
-		
-		//Get children from both lists
-		List<Node<File>> children1 = parent.getChildren();
-		List<Node<File>> children2 = parent2.getChildren();
-		
-		//Allocate list of children in both trees
-		List<Node<File>> inBoth = null;
+	public static void compareFiles(){
+
+		//Get trees in list form
+		List<Node<File>> list1 = tree2List(root);
+		List<Node<File>> list2 = tree2List(root2);
 		
 		//Find files added
-		for (Node<File> child2 : children2){
+		for (Node<File> file : list2) {
 			boolean found = false;
-			for (Node<File> child : children1){
-				if (child.getData().getAbsolutePath() == child2.getData().getAbsolutePath()) {
+			for (Node<File> file2 : list1) {
+				if (isEqualPath(file, file2)){
 					found = true;
 				}
 			}
 			if (!found){
-				added.add(child2.getData().getAbsolutePath());
-				//Recursively add it's children to the list
-				//TODO
-			}
-			else{
-				inBoth.add(child2);
+				added.add(file);
 			}
 		}
-		
-		//Find files deleted
-		for (Node<File> child : children1){
+
+		//Find files added
+		for (Node<File> file : list1) {
 			boolean found = false;
-			for (Node<File> child2 : children2){
-				if (child.getData().getAbsolutePath() == child2.getData().getAbsolutePath()) {
+			for (Node<File> file2 : list2) {
+				if (isEqualPath(file, file2)){
 					found = true;
 				}
 			}
 			if (!found){
-				deleted.add(child.getData().getAbsolutePath());
-				//Recursively add its children to the list
-				//TODO
-			}
-			else{
-				inBoth.add(child);
+				deleted.add(file);
 			}
 		}
-		//TODO
-		//Restructure this to check to see if the nodes are in both, otherwise do something
-		
+
 	}
 	
+	/*
+	 * Helper function to recursively add all nodes to list 
+	 */
+	public static List<Node<File>> tree2List (Node<File> root){
+		List<Node<File>> list = new ArrayList<Node<File>>();
+		List<Node<File>> children = root.getChildren();
+		//Print every file in the list to the console
+		for (Node<File> file : children){
+			list.add(file);
+			//Recursively print children
+			if (file.getData().isDirectory()){
+				list.addAll(tree2List(file));
+			}
+		}	
+		
+		return list;
+	}
+	
+	/*
+	 * Helper function to recursively print all nodes for troubleshooting 
+	 */
 	public static void printNodes(Node<File> root){
 		//Print every file in the list to the console
 		for (Node<File> file : root.getChildren()){
@@ -136,29 +167,47 @@ public class changeFinder{
 			if (file.getData().isDirectory()){
 				printNodes(file);
 			}
+		}	
+	}
+	
+	/*
+	 * Prints absolute file path of all nodes in a list
+	 */
+	public static void printList (List<Node<File>> list){
+		
+		for (Node<File> file : list){
+			System.out.println(file.getData().getAbsolutePath());
 		}
-		
-		
 	}
 	
 
 	public static void main(String[] args) {
+		//Create scanner for System.in
+		Scanner scanner = new Scanner(System.in);
 		//Get directory from user
-		String dirPath = getInput(1);
+		String dirPath = getInput(1, scanner);
 		//Open the directory
 		File dir = openDir(dirPath);
 		//Create root node
 		root = new Node<File>(dir);
 		//Get the list of all the files in the directory
-		getChildren(root);
-		//Print all the files to console
-//		printFiles(root);
+		getChildrenFromFile(root);
+		//Wait for the user to continue execution
+		String input = getInput(2, scanner);
 		//Create root node for 2nd Tree
-		root2 = new Node<File>(dir);
+		File dir2 = openDir(dirPath);
+		root2 = new Node<File>(dir2);
 		//Get the list of all files in the directory
-		getChildren(root2);
-		
-
+		getChildrenFromFile(root2);
+		//Compare the two tree structures
+		compareFiles();
+		//Print out the results of the comparison
+		System.out.println("Files added to directory structure:");
+		printList(added);
+		System.out.println("Files deleted from directory structure:");
+		printList(deleted);
+		//Close scanner
+		scanner.close();
 	}
 
 }
